@@ -1,0 +1,27 @@
+# Started automatically when the application boots (spring-boot-docker-compose).
+# Matches the local Postgres container used by this service:
+# user lexhive, password lexhive, database lexhive, host port 5434.
+services:
+  postgres:
+    image: postgres:latest
+    container_name: lexhive-postgres
+    environment:
+      POSTGRES_USER: lexhive
+      POSTGRES_PASSWORD: lexhive
+      POSTGRES_DB: lexhive
+    ports:
+      - "5434:5432"
+    volumes:
+      - lexhive-pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lexhive -d lexhive"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+    labels:
+      org.springframework.boot.service-connection: postgres
+
+volumes:
+  lexhive-pgdata:

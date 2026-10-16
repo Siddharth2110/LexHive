@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: LexHive
+  datasource:
+    url: jdbc:postgresql://localhost:5434/lexhive
+    username: lexhive
+    password: lexhive
+  flyway:
+    enabled: true
+    connect-retries: 20
+    connect-retries-interval: 2
+  docker:
+    compose:
+      file: compose.yaml
+      lifecycle-management: start-only
+      readiness:
+        timeout: 3m
+
+lexhive:
+  borrowing:
+    max-active-loans: 3
+    loan-duration-days: 14
