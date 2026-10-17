@@ -64,13 +64,13 @@ public final class BookResponse {
     public boolean equals(Object obj) {
         if (obj == this) return true;
         if (obj == null || obj.getClass() != this.getClass()) return false;
-        var that = (BookResponse) obj;
-        return Objects.equals(this.id, that.id) &&
-                Objects.equals(this.title, that.title) &&
-                Objects.equals(this.author, that.author) &&
-                Objects.equals(this.isbn, that.isbn) &&
-                this.totalCopies == that.totalCopies &&
-                this.availableCopies == that.availableCopies;
+        BookResponse responseObj = (BookResponse) obj;
+        return Objects.equals(this.id, responseObj.id) &&
+                Objects.equals(this.title, responseObj.title) &&
+                Objects.equals(this.author, responseObj.author) &&
+                Objects.equals(this.isbn, responseObj.isbn) &&
+                this.totalCopies == responseObj.totalCopies &&
+                this.availableCopies == responseObj.availableCopies;
     }
 
     @Override
