@@ -74,6 +74,11 @@ public class MemberRepository {
 				""", MEMBER_ROW);
 	}
 
+	public Optional<Long> findIdByEmail(String email) {
+		List<Long> ids = jdbc.queryForList("SELECT id FROM members WHERE email = ?", Long.class, email);
+		return ids.stream().findFirst();
+	}
+
 	public boolean existsById(Long id) {
 		return exists("SELECT EXISTS (SELECT 1 FROM members WHERE id = ?)", id);
 	}

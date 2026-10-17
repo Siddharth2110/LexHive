@@ -40,16 +40,16 @@ public class LoanService {
 	}
 
 	@Transactional
-	public LoanResponse borrow(BorrowRequest request) {
-		Member member = memberRepository.findByIdForUpdate(request.memberId())
-				.orElseThrow(() -> memberNotFound(request.memberId()));
+	public LoanResponse borrow(Long bookId, Long memberId) {
+		Member member = memberRepository.findByIdForUpdate(memberId)
+				.orElseThrow(() -> memberNotFound(memberId));
 		Instant now = clock.instant();
 		long activeLoans = loanRepository.countByMember_IdAndReturnedAtIsNull(member.getId());
 		boolean overdue = loanRepository.existsByMember_IdAndReturnedAtIsNullAndDueDateBefore(member.getId(), now);
 		borrowingPolicy.checkCanBorrow(activeLoans, overdue);
 
-		Book book = bookRepository.findByIdForUpdate(request.bookId())
-				.orElseThrow(() -> bookNotFound(request.bookId()));
+		Book book = bookRepository.findByIdForUpdate(bookId)
+				.orElseThrow(() -> bookNotFound(bookId));
 		book.borrowOneCopy();
 		bookRepository.update(book);
 

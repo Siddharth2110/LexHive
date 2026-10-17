@@ -20,3 +20,7 @@ lexhive:
   borrowing:
     max-active-loans: 3
     loan-duration-days: 14
+  security:
+    # HS256 needs at least 32 characters. Override with LEXHIVE_JWT_SECRET outside local dev.
+    jwt-secret: Library_system_LexHive_Secret_Key
+    token-expiry-minutes: 60
