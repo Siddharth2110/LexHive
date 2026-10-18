@@ -13,6 +13,7 @@ services:
       - "5434:5432"
     volumes:
       - lexhive-pgdata:/var/lib/postgresql
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U lexhive -d lexhive"]
       interval: 5s
