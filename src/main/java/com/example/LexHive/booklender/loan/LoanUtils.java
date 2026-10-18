@@ -29,4 +29,16 @@ public class LoanUtils {
             throw new LibraryException(HttpStatus.FORBIDDEN, "NOT_YOUR_LOAN", "Members can only access their own loans");
         }
     }
+
+    public static LibraryException bookNotFound(Long id) {
+        return new LibraryException(HttpStatus.NOT_FOUND, "BOOK_NOT_FOUND", "Book " + id + " was not found");
+    }
+
+    public static LibraryException memberNotFound(Long id) {
+        return new LibraryException(HttpStatus.NOT_FOUND, "MEMBER_NOT_FOUND", "Member " + id + " was not found");
+    }
+
+    public static LibraryException loanNotFound(Long id) {
+        return new LibraryException(HttpStatus.NOT_FOUND, "LOAN_NOT_FOUND", "Loan " + id + " was not found");
+    }
 }

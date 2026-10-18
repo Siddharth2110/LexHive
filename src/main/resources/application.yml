@@ -21,6 +21,29 @@ lexhive:
     max-active-loans: 3
     loan-duration-days: 14
   security:
-    # HS256 needs at least 32 characters. Override with LEXHIVE_JWT_SECRET outside local dev.
     jwt-secret: Library_system_LexHive_Secret_Key
     token-expiry-minutes: 60
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+      roles: LIBRARIAN
+      probes:
+        enabled: true
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: LexHive
+    description: Book lending service
+
+logging:
+  pattern:
+    level: "%5p [%X{requestId:-}]"

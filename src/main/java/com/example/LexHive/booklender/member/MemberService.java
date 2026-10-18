@@ -22,9 +22,9 @@ public class MemberService {
 
 	@Transactional
 	public MemberResponse create(MemberRequest request) {
-		String email = normalizeEmail(request.email());
+		String email = MemberUtils.normalizeEmail(request.email());
 		if (memberRepository.existsByEmail(email)) {
-			throw duplicateEmail();
+			throw MemberUtils.duplicateEmail();
 		}
 		Member member = new Member(request.name().trim(), email);
 		return MemberResponse.from(memberRepository.save(member));
@@ -42,10 +42,10 @@ public class MemberService {
 
 	@Transactional
 	public MemberResponse update(Long id, MemberRequest request) {
-		Member member = memberRepository.findByIdForUpdate(id).orElseThrow(() -> notFound(id));
-		String email = normalizeEmail(request.email());
+		Member member = memberRepository.findByIdForUpdate(id).orElseThrow(() -> MemberUtils.notFound(id));
+		String email = MemberUtils.normalizeEmail(request.email());
 		if (!email.equals(member.getEmail()) && memberRepository.existsByEmailAndIdNot(email, id)) {
-			throw duplicateEmail();
+			throw MemberUtils.duplicateEmail();
 		}
 		member.changeDetails(request.name().trim(), email);
 		memberRepository.update(member);
@@ -54,7 +54,7 @@ public class MemberService {
 
 	@Transactional
 	public void delete(Long id) {
-		Member member = memberRepository.findByIdForUpdate(id).orElseThrow(() -> notFound(id));
+		Member member = memberRepository.findByIdForUpdate(id).orElseThrow(() -> MemberUtils.notFound(id));
 		if (loanRepository.existsByMember_Id(id)) {
 			throw new LibraryException(
 					HttpStatus.CONFLICT,
@@ -65,19 +65,7 @@ public class MemberService {
 	}
 
 	private Member findMember(Long id) {
-		return memberRepository.findById(id).orElseThrow(() -> notFound(id));
-	}
-
-	private static LibraryException notFound(Long id) {
-		return new LibraryException(HttpStatus.NOT_FOUND, "MEMBER_NOT_FOUND", "Member " + id + " was not found");
-	}
-
-	private static LibraryException duplicateEmail() {
-		return new LibraryException(HttpStatus.CONFLICT, "DUPLICATE_EMAIL", "A member with this email already exists");
-	}
-
-	static String normalizeEmail(String email) {
-		return email.trim().toLowerCase(Locale.ROOT);
+		return memberRepository.findById(id).orElseThrow(() -> MemberUtils.notFound(id));
 	}
 
 }

@@ -32,6 +32,8 @@ public class SecurityConfig {
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/api/auth/login", "/error").permitAll()
+						.requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
+						.requestMatchers("/actuator/**").hasRole("LIBRARIAN")
 						.requestMatchers(HttpMethod.GET, "/api/books/**").hasAnyRole("LIBRARIAN", "MEMBER")
 						.requestMatchers("/api/books/**", "/api/members/**").hasRole("LIBRARIAN")
 						.requestMatchers("/api/loans/**").hasAnyRole("LIBRARIAN", "MEMBER")
