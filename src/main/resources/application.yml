@@ -20,3 +20,15 @@ lexhive:
   borrowing:
     max-active-loans: 3
     loan-duration-days: 14
+  security:
+    jwt:
+      # Development signing key only. Set LEXHIVE_JWT_SECRET outside local use.
+      secret: ${LEXHIVE_JWT_SECRET:dev-only-lexhive-jwt-signing-key-32}
+      expiration: 1h
+    users:
+      - username: alice
+        password: '$2a$10$oSHkb7Vi7E8X.a4tpF4pVeXR0RpcUiSm.DzvaGsGffJnpdb4WTL8K'
+        role: MEMBER
+      - username: librarian
+        password: '$2a$10$OnauRb/662NP8v.RhXmX9u60FRMWf9qzh008CGohfWuYx3glXFjg2'
+        role: LIBRARIAN
