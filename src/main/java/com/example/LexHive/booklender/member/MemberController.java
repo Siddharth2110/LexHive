@@ -27,7 +27,7 @@ public class MemberController {
 	}
 
 	@PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<MemberResponse> create(@Valid @RequestBody MemberRequest request) {
+	public ResponseEntity<MemberResponse> create(@Valid @RequestBody CreateMemberRequest request) {
 		MemberResponse created = memberService.create(request);
 		URI location = ServletUriComponentsBuilder.fromCurrentRequest()
 				.path("/{id}")

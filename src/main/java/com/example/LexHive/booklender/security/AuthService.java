@@ -1,9 +1,11 @@
 package com.example.LexHive.booklender.security;
 
 import com.example.LexHive.booklender.exception.LibraryException;
+import com.example.LexHive.booklender.member.MemberCredentials;
 import com.example.LexHive.booklender.member.MemberRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
@@ -11,85 +13,83 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class AuthService {
 
-	private static final Map<String, UserDetails> USERS = Map.of(
-			"librarian", new UserDetails("librarian", "librarian123", "LIBRARIAN"),
-			"siddharth@lexhive.com", new UserDetails("siddharth@lexhive.com", "siddharth123", "MEMBER"),
-			"varshney@lexhive.com", new UserDetails("varshney@lexhive.com", "varshney123", "MEMBER")
-	);
-
+	private static final String LIBRARIAN_USERNAME = "librarian";
+	private static final String LIBRARIAN_PASSWORD = "librarian123";
 	private static final String DUMMY_PASSWORD = "dummy-password-for-unknown-users";
 
 	private final JwtEncoder jwtEncoder;
 	private final MemberRepository memberRepository;
+	private final PasswordEncoder passwordEncoder;
 	private final Clock clock;
 	private final long tokenExpiryMinutes;
+	private final String librarianPasswordHash;
+	private final String dummyPasswordHash;
 
 	public AuthService(JwtEncoder jwtEncoder,
 					   MemberRepository memberRepository,
+					   PasswordEncoder passwordEncoder,
 					   Clock clock,
 					   @Value("${lexhive.security.token-expiry-minutes}") long tokenExpiryMinutes) {
 		this.jwtEncoder = jwtEncoder;
 		this.memberRepository = memberRepository;
+		this.passwordEncoder = passwordEncoder;
 		this.clock = clock;
 		this.tokenExpiryMinutes = tokenExpiryMinutes;
+		this.librarianPasswordHash = passwordEncoder.encode(LIBRARIAN_PASSWORD);
+		this.dummyPasswordHash = passwordEncoder.encode(DUMMY_PASSWORD);
 	}
 
 	public LoginResponse login(LoginRequest request) {
-		UserDetails user = USERS.get(request.username().toLowerCase(Locale.ROOT));
-		if(user == null){
-			// this needs to be written to avoid hacker to segregate wrong username from the right ones from response time
-			passwordMatches(request.password(), DUMMY_PASSWORD);
-			throw new LibraryException(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "Username or password is incorrect");
-		}
-		if (!passwordMatches(request.password(), user.getPassword())) {
-			throw new LibraryException(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "Username or password is incorrect");
+		String username = request.username().trim().toLowerCase(Locale.ROOT);
+
+		if (username.equals(LIBRARIAN_USERNAME)) {
+			if (!passwordEncoder.matches(request.password(), librarianPasswordHash)) {
+				throw invalidCredentials();
+			}
+			return issueToken(username, "LIBRARIAN", null);
 		}
 
-		Long memberId = null;
-		if (user.getRole().equals("MEMBER")) {
-			memberId = memberIdOf(user.getUsername());
+		Optional<MemberCredentials> credentials = memberRepository.findCredentialsByEmail(username);
+		if (credentials.isEmpty()) {
+			// Run a hash check anyway so unknown usernames take as long as wrong passwords
+			// and can't be told apart by response time.
+			passwordEncoder.matches(request.password(), dummyPasswordHash);
+			throw invalidCredentials();
 		}
+		if (!passwordEncoder.matches(request.password(), credentials.get().passwordHash())) {
+			throw invalidCredentials();
+		}
+		return issueToken(username, "MEMBER", credentials.get().memberId());
+	}
 
+	private LoginResponse issueToken(String username, String role, Long memberId) {
 		Instant now = clock.instant();
 		Instant expiresAt = now.plus(tokenExpiryMinutes, ChronoUnit.MINUTES);
-		String token = createToken(user, memberId, now, expiresAt);
-
-		return new LoginResponse(token, "Bearer", expiresAt, List.of(user.getRole()), memberId);
+		String token = createToken(username, role, memberId, now, expiresAt);
+		return new LoginResponse(token, "Bearer", expiresAt, List.of(role), memberId);
 	}
 
-	// MessageDigest.isEqual takes the same time whether the first or last character differs,
-	// so response times don't leak how much of the password was right.
-	private static boolean passwordMatches(String typed, String expected) {
-		return MessageDigest.isEqual(
-				typed.getBytes(StandardCharsets.UTF_8),
-				expected.getBytes(StandardCharsets.UTF_8));
+	private static LibraryException invalidCredentials() {
+		return new LibraryException(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "Username or password is incorrect");
 	}
 
-	private Long memberIdOf(String email) {
-		return memberRepository.findIdByEmail(email)
-				.orElseThrow(() -> new LibraryException(HttpStatus.FORBIDDEN, "NO_MEMBER_PROFILE",
-						"Your account is not linked to a library member"));
-	}
-
-	private String createToken(UserDetails user, Long memberId, Instant issuedAt, Instant expiresAt) {
+	private String createToken(String username, String role, Long memberId, Instant issuedAt, Instant expiresAt) {
 		JwtClaimsSet.Builder claims = JwtClaimsSet.builder()
 				.issuer("lexhive")
-				.subject(user.getUsername())
+				.subject(username)
 				.issuedAt(issuedAt)
 				.expiresAt(expiresAt)
-				.claim("roles", List.of(user.getRole()));
+				.claim("roles", List.of(role));
 		if (memberId != null) {
 			claims.claim("memberId", memberId);
 		}

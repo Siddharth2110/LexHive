@@ -21,15 +21,16 @@ public class MemberRepository {
 		this.jdbc = jdbc;
 	}
 
-	public Member save(Member member) {
+	public Member save(Member member, String passwordHash) {
 		Long id = jdbc.queryForObject("""
-				INSERT INTO members (name, email)
-				VALUES (?, ?)
+				INSERT INTO members (name, email, password_hash)
+				VALUES (?, ?, ?)
 				RETURNING id
 				""",
 				Long.class,
 				member.getName(),
-				member.getEmail());
+				member.getEmail(),
+				passwordHash);
 		member.assignId(generatedId(id));
 		return member;
 	}
@@ -74,9 +75,12 @@ public class MemberRepository {
 				""", MEMBER_ROW);
 	}
 
-	public Optional<Long> findIdByEmail(String email) {
-		List<Long> ids = jdbc.queryForList("SELECT id FROM members WHERE email = ?", Long.class, email);
-		return ids.stream().findFirst();
+	public Optional<MemberCredentials> findCredentialsByEmail(String email) {
+		List<MemberCredentials> rows = jdbc.query(
+				"SELECT id, password_hash FROM members WHERE email = ?",
+				(rs, rowNum) -> new MemberCredentials(rs.getLong("id"), rs.getString("password_hash")),
+				email);
+		return rows.stream().findFirst();
 	}
 
 	public boolean existsById(Long id) {

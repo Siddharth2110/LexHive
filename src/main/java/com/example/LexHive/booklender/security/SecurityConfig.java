@@ -7,6 +7,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
@@ -31,7 +33,7 @@ public class SecurityConfig {
 				.csrf(csrf -> csrf.disable())
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(auth -> auth
-						.requestMatchers("/api/auth/login", "/error").permitAll()
+						.requestMatchers("/api/auth/login").permitAll()
 						.requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
 						.requestMatchers("/actuator/**").hasRole("LIBRARIAN")
 						.requestMatchers(HttpMethod.GET, "/api/books/**").hasAnyRole("LIBRARIAN", "MEMBER")
@@ -40,6 +42,11 @@ public class SecurityConfig {
 						.anyRequest().authenticated())
 				.oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
 		return http.build();
+	}
+
+	@Bean
+	public PasswordEncoder passwordEncoder() {
+		return new BCryptPasswordEncoder();
 	}
 
 	@Bean

@@ -36,27 +36,27 @@ public final class BookResponse {
                 book.getAvailableCopies());
     }
 
-    public Long id() {
+    public Long getId() {
         return id;
     }
 
-    public String title() {
+    public String getTitle() {
         return title;
     }
 
-    public String author() {
+    public String getAuthor() {
         return author;
     }
 
-    public String isbn() {
+    public String getIsbn() {
         return isbn;
     }
 
-    public int totalCopies() {
+    public int getTotalCopies() {
         return totalCopies;
     }
 
-    public int availableCopies() {
+    public int getAvailableCopies() {
         return availableCopies;
     }
 

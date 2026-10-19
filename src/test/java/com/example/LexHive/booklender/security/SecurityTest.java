@@ -7,6 +7,7 @@ import com.example.LexHive.booklender.loan.LoanController;
 import com.example.LexHive.booklender.loan.LoanResponse;
 import com.example.LexHive.booklender.loan.LoanService;
 import com.example.LexHive.booklender.member.MemberController;
+import com.example.LexHive.booklender.member.MemberCredentials;
 import com.example.LexHive.booklender.member.MemberRepository;
 import com.example.LexHive.booklender.member.MemberService;
 import com.jayway.jsonpath.JsonPath;
@@ -16,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -23,6 +25,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -54,10 +57,51 @@ class SecurityTest {
 	@MockitoBean
 	private MemberRepository memberRepository;
 
+	@Autowired
+	private PasswordEncoder passwordEncoder;
+
 	@BeforeEach
-	void linkLoginsToMembers() {
-		when(memberRepository.findIdByEmail("siddharth@lexhive.com")).thenReturn(Optional.of(SIDDHARTH_ID));
-		when(memberRepository.findIdByEmail("varshney@lexhive.com")).thenReturn(Optional.of(VARSHNEY_ID));
+	void storeMemberCredentials() {
+		when(memberRepository.findCredentialsByEmail("siddharth@lexhive.com"))
+				.thenReturn(Optional.of(new MemberCredentials(SIDDHARTH_ID, passwordEncoder.encode("siddharth123"))));
+		when(memberRepository.findCredentialsByEmail("varshney@lexhive.com"))
+				.thenReturn(Optional.of(new MemberCredentials(VARSHNEY_ID, passwordEncoder.encode("varshney123"))));
+	}
+
+	@Test
+	void unknownUserDoesNotGetAToken() throws Exception {
+		mockMvc.perform(post("/api/auth/login")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"username\":\"nobody@lexhive.com\",\"password\":\"whatever123\"}"))
+				.andExpect(status().isUnauthorized());
+	}
+
+	@Test
+	void newlyAddedMemberCanLogInWithTheirPassword() throws Exception {
+		when(memberRepository.findCredentialsByEmail("asha@lexhive.com"))
+				.thenReturn(Optional.of(new MemberCredentials(3L, passwordEncoder.encode("asha-secret"))));
+
+		mockMvc.perform(post("/api/auth/login")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"username\":\"Asha@LexHive.com\",\"password\":\"asha-secret\"}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.memberId").value(3L));
+	}
+
+	@Test
+	void creatingAMemberRequiresAPassword() throws Exception {
+		String token = loginAs("librarian", "librarian123");
+
+		mockMvc.perform(post("/api/members").header("Authorization", "Bearer " + token)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"name\":\"Asha\",\"email\":\"asha@lexhive.com\"}"))
+				.andExpect(status().isBadRequest());
+
+		mockMvc.perform(post("/api/members").header("Authorization", "Bearer " + token)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"name\":\"Asha\",\"email\":\"asha@lexhive.com\",\"password\":\"short\"}"))
+				.andExpect(status().isBadRequest());
+		verify(memberService, never()).create(any());
 	}
 
 	@Test
