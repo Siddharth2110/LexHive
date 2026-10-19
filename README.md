@@ -49,6 +49,15 @@ git clone <your-repo-url>
 cd LexHive
 ./mvnw spring-boot:run
 ```
+if there is an error something like "permission denied while trying to connect to the docker."
+run the below command. This will create a group which can access docker same as root/sudo.
+
+```bash
+sudo addgroup --system docker
+sudo adduser $USER docker
+sudo snap disable docker
+sudo snap enable docker
+```
 
 On startup Spring Boot runs `compose.yaml`, which starts a PostgreSQL container named `lexhive-postgres` on port `5434`. The first time the container starts, `docker/postgres/init.sql` creates the tables and seeds two members.
 
